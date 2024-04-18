@@ -2,6 +2,7 @@ import { Home, Pizza, UtensilsCrossed } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
 import { CustomNavLink } from './nav-link'
+import { ThemeToggle } from './theme/theme-toggle'
 import { Separator } from './ui/separator'
 
 export function Header() {
@@ -26,6 +27,10 @@ export function Header() {
             Pedidos
           </CustomNavLink>
         </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   )
