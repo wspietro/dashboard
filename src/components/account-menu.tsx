@@ -21,12 +21,14 @@ export function AccountMenu() {
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
+    staleTime: Infinity,
   })
 
   const { data: managedRestaurant, isLoading: isLoadingManagedRestaurant } =
     useQuery({
       queryKey: ['managed-restaurants'],
       queryFn: getManagedRestaurant,
+      staleTime: Infinity, // dado não é considerado stale, cache é retornado (até cache sir invalidado)
     })
 
   return (
