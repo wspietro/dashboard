@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Building, ChevronDown, LogOut } from 'lucide-react'
+import { useState } from 'react'
 
 import { getManagedRestaurant } from '@/api/get-managed-restaurant'
 import { getProfile } from '@/api/get-profile'
@@ -18,28 +19,33 @@ import {
 import { Skeleton } from './ui/skeleton'
 
 export function AccountMenu() {
+  const [open, setOpen] = useState<boolean>(false)
+
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
     staleTime: Infinity,
   })
 
-  const { data: managedRestaurant, isLoading: isLoadingManagedRestaurant } =
-    useQuery({
-      queryKey: ['managed-restaurants'],
-      queryFn: getManagedRestaurant,
-      staleTime: Infinity, // dado não é considerado stale, cache é retornado (até cache sir invalidado)
-    })
+  const {
+    data: managedRestaurant,
+    isLoading: isLoadingManagedRestaurant,
+    isRefetching,
+  } = useQuery({
+    queryKey: ['managed-restaurants'],
+    queryFn: getManagedRestaurant,
+    staleTime: Infinity, // dado não é considerado stale, cache é retornado (até cache sir invalidado)
+  })
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
             className="flex select-none items-center gap-2"
           >
-            {isLoadingManagedRestaurant ? (
+            {isLoadingManagedRestaurant || isRefetching ? (
               <Skeleton className="h-4 w-40" />
             ) : (
               managedRestaurant?.name
@@ -78,7 +84,7 @@ export function AccountMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <StoreProfileDialog />
+      <StoreProfileDialog setOpen={setOpen} />
     </Dialog>
   )
 }
