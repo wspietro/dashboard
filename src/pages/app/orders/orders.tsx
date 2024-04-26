@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
+import { useSearchParams } from 'react-router-dom'
+import { z } from 'zod'
 
 import { listOrders } from '@/api/list-orders'
 import { Pagination } from '@/components/pagination'
@@ -15,10 +17,29 @@ import { OrderTableFilters } from './order-table-filters'
 import { OrderTableRow } from './order-table-row'
 
 export function Orders() {
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // coerce pega valor e tenta converter para numero
+  // subtrai 1 (index para nos é 0, para usuário é 1)
+  // garante que se não ouver valor, seja 1
+  const pageIndex = z.coerce
+    .number()
+    .transform((page) => page - 1)
+    .parse(searchParams.get('page') ?? 1)
+
   const { data: result } = useQuery({
-    queryKey: ['orders'],
-    queryFn: listOrders,
+    queryKey: ['orders', pageIndex],
+    queryFn: () => listOrders({ pageIndex }),
   })
+
+  function handlePaginate(pageIndex: number) {
+    // prev é o que já existe na url
+    setSearchParams((prevSearchParams) => {
+      prevSearchParams.set('page', (pageIndex + 1).toString())
+
+      return prevSearchParams
+    })
+  }
 
   return (
     <>
@@ -50,7 +71,14 @@ export function Orders() {
               </TableBody>
             </Table>
           </div>
-          <Pagination pageIndex={0} perPage={10} totalCount={105} />
+          {result && (
+            <Pagination
+              onPageChange={handlePaginate}
+              pageIndex={result.meta.pageIndex}
+              perPage={result.meta.perPage}
+              totalCount={result.meta.totalCount}
+            />
+          )}
         </div>
       </div>
     </>

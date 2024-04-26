@@ -27,10 +27,17 @@ interface ListOrdersResponse {
   meta: OrderMeta // informações para paginação
 }
 
-export async function listOrders() {
+export interface GetOrdersQuery {
+  status?: OrderStatusEnum
+  orderId?: string
+  customerName?: string
+  pageIndex?: number | null
+}
+
+export async function listOrders({ pageIndex }: GetOrdersQuery) {
   const response = await api.get<ListOrdersResponse>('/orders', {
     params: {
-      pageIndex: 0, // único obrigatório
+      pageIndex, // único obrigatório
     },
   })
 
