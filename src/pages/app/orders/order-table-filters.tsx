@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Search, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
+import { useDebouncedCallback } from 'use-debounce'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -23,43 +24,34 @@ const orderFilterSchema = z.object({
 type OrderFilterSchema = z.infer<typeof orderFilterSchema>
 
 export function OrderTableFilters() {
+  const debouncedSearch = useDebouncedCallback(
+    (name: string, value: string) => {
+      handleFilter(name, value)
+    },
+    700,
+  )
   const [searchParams, setSearchParams] = useSearchParams()
 
   const orderId = searchParams.get('orderId')
   const customerName = searchParams.get('customerName')
   const status = searchParams.get('status')
 
-  const { handleSubmit, register, control, reset } = useForm<OrderFilterSchema>(
-    {
-      resolver: zodResolver(orderFilterSchema),
-      values: {
-        orderId: orderId ?? '',
-        customerName: customerName ?? '',
-        status: status ?? 'all',
-      },
+  const { register, control, reset } = useForm<OrderFilterSchema>({
+    resolver: zodResolver(orderFilterSchema),
+    values: {
+      orderId: orderId ?? '',
+      customerName: customerName ?? '',
+      status: status ?? 'all',
     },
-  )
+  })
 
-  function handleFilter({ customerName, orderId, status }: OrderFilterSchema) {
+  function handleFilter(inputName: string, inputValue: string) {
     setSearchParams((searchParams) => {
-      if (orderId) {
-        searchParams.set('orderId', orderId)
-      } else {
-        searchParams.delete('orderId')
+      if (inputValue === '' || inputValue === 'all') {
+        searchParams.delete(inputName)
+        return searchParams
       }
-
-      if (customerName) {
-        searchParams.set('customerName', customerName)
-      } else {
-        searchParams.delete('customerName')
-      }
-
-      if (status) {
-        searchParams.set('status', status)
-      } else {
-        searchParams.delete('status')
-      }
-
+      searchParams.set(inputName, inputValue)
       searchParams.set('page', '1')
       return searchParams
     })
@@ -68,7 +60,7 @@ export function OrderTableFilters() {
   function handleClearFilters() {
     setSearchParams((searchParams) => {
       searchParams.delete('orderId')
-      searchParams.delete('customerId')
+      searchParams.delete('customerName')
       searchParams.delete('status')
       searchParams.set('page', '1')
 
@@ -83,20 +75,25 @@ export function OrderTableFilters() {
   }
 
   return (
-    <form
-      className="flex items-center gap-2"
-      onSubmit={handleSubmit(handleFilter)}
-    >
+    <form className="flex items-center gap-2">
       <span className="text-sm font-semibold">Filtros</span>
       <Input
         placeholder="ID do pedido"
         className="h-8 w-auto"
-        {...register('orderId')}
+        {...register('orderId', {
+          onChange: (e) => {
+            debouncedSearch(e.target.name, e.target.value)
+          },
+        })}
       />
       <Input
         placeholder="Nome do client"
         className="h-8 w-[320px]"
-        {...register('customerName')}
+        {...register('customerName', {
+          onChange: (e) => {
+            debouncedSearch(e.target.name, e.target.value)
+          },
+        })}
       />
 
       <Controller
@@ -107,7 +104,10 @@ export function OrderTableFilters() {
             <Select
               defaultValue="All"
               name={name}
-              onValueChange={onChange}
+              onValueChange={(value) => {
+                handleFilter('status', value)
+                onChange()
+              }}
               value={value}
               disabled={disabled}
             >
@@ -126,16 +126,12 @@ export function OrderTableFilters() {
           )
         }}
       ></Controller>
-
-      <Button type="submit" variant="secondary" size="xs">
-        <Search className="mr-2 h-4 w-4" />
-        Filtrar Resultados
-      </Button>
       <Button
         type="button"
         variant="outline"
         size="xs"
         onClick={handleClearFilters}
+        disabled={!orderId && !customerName && !status}
       >
         <X className="mr-2 h-4 w-4" />
         Remover Filtros
