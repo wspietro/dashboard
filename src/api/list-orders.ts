@@ -28,16 +28,24 @@ interface ListOrdersResponse {
 }
 
 export interface GetOrdersQuery {
-  status?: OrderStatusEnum
-  orderId?: string
-  customerName?: string
+  status?: string | null
+  orderId?: string | null
+  customerName?: string | null
   pageIndex?: number | null
 }
 
-export async function listOrders({ pageIndex }: GetOrdersQuery) {
+export async function listOrders({
+  pageIndex,
+  customerName,
+  orderId,
+  status,
+}: GetOrdersQuery) {
   const response = await api.get<ListOrdersResponse>('/orders', {
     params: {
       pageIndex, // único obrigatório
+      customerName,
+      orderId,
+      status,
     },
   })
 

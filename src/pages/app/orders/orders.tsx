@@ -19,6 +19,10 @@ import { OrderTableRow } from './order-table-row'
 export function Orders() {
   const [searchParams, setSearchParams] = useSearchParams()
 
+  const orderId = searchParams.get('orderId')
+  const customerName = searchParams.get('customerName')
+  const status = searchParams.get('status')
+
   // coerce pega valor e tenta converter para numero
   // subtrai 1 (index para nos é 0, para usuário é 1)
   // garante que se não ouver valor, seja 1
@@ -28,16 +32,22 @@ export function Orders() {
     .parse(searchParams.get('page') ?? 1)
 
   const { data: result } = useQuery({
-    queryKey: ['orders', pageIndex],
-    queryFn: () => listOrders({ pageIndex }),
+    queryKey: ['orders', pageIndex, orderId, customerName, status],
+    queryFn: () =>
+      listOrders({
+        pageIndex,
+        orderId,
+        customerName,
+        status: status === 'all' ? null : status,
+      }),
   })
 
   function handlePaginate(pageIndex: number) {
     // prev é o que já existe na url
-    setSearchParams((prevSearchParams) => {
-      prevSearchParams.set('page', (pageIndex + 1).toString())
+    setSearchParams((searchParams) => {
+      searchParams.set('page', (pageIndex + 1).toString())
 
-      return prevSearchParams
+      return searchParams
     })
   }
 
