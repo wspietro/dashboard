@@ -57,6 +57,7 @@ export function StoreProfileDialog({ setOpen }: StoreProfileDialogProps) {
 
   const { mutateAsync: updateProfileFn } = useMutation({
     mutationFn: updateProfile,
+    // interface otimista
     onMutate({ description, name }) {
       const { cached } = updateManagedRestaurantCache({ description, name })
 

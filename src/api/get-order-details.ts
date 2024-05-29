@@ -17,7 +17,7 @@ type ItemsDetails = {
   }
 }
 
-interface getOrderDetailsResponse {
+export interface GetOrderDetailsResponse {
   id: string
   createdAt: string
   status: OrderStatusEnum
@@ -31,7 +31,7 @@ interface getOrderDetailsParams {
 }
 
 export async function getOrderDetails({ orderId }: getOrderDetailsParams) {
-  const response = await api.get<getOrderDetailsResponse>(`/orders/${orderId}`)
+  const response = await api.get<GetOrderDetailsResponse>(`/orders/${orderId}`)
 
   return response.data
 }

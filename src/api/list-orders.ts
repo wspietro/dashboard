@@ -22,7 +22,7 @@ export type OrderMeta = {
   totalCount: number
 }
 
-interface ListOrdersResponse {
+export interface ListOrdersResponse {
   orders: Array<Order>
   meta: OrderMeta // informações para paginação
 }

@@ -1,12 +1,16 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ArrowRight, Search, X } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
-import { Order } from '@/api/list-orders'
+import { cancelOrder } from '@/api/cancel-order'
+import { ListOrdersResponse, Order, OrderStatusEnum } from '@/api/list-orders'
 import { OrderStatus } from '@/components/order-status'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import { TableCell, TableRow } from '@/components/ui/table'
 
 import { OrderDetails } from './order-details'
@@ -17,6 +21,42 @@ interface OrderTableRowProps {
 
 export function OrderTableRow({ order }: OrderTableRowProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { mutateAsync: cancelOrderFn, isPending: isCancelOrderPending } =
+    useMutation({
+      mutationFn: cancelOrder,
+      async onSuccess(_, { orderId }) {
+        const ordersListCache = queryClient.getQueriesData<ListOrdersResponse>({
+          queryKey: ['orders'],
+        })
+
+        ordersListCache.forEach(([cacheKey, cacheData]) => {
+          if (!cacheData) {
+            return
+          }
+
+          // altera todo o status para cancelado em todos os caches salvos no react query
+          queryClient.setQueryData<ListOrdersResponse>(cacheKey, {
+            ...cacheData,
+            orders: cacheData.orders.map((order) => {
+              if (order.orderId === orderId) {
+                return { ...order, status: OrderStatusEnum.Canceled }
+              }
+
+              return order
+            }),
+          })
+        })
+
+        toast.success('Pedido cancelado com sucesso!')
+      },
+      onError(error) {
+        toast.error('Erro ao cancelar o pedido.', {
+          description: `${error.message}`,
+        })
+      },
+    })
 
   return (
     <TableRow>
@@ -57,9 +97,22 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
         </Button>
       </TableCell>
       <TableCell>
-        <Button variant="ghost" size="xs">
+        <Button
+          disabled={
+            ![OrderStatusEnum.Pending, OrderStatusEnum.Processing].includes(
+              order.status,
+            )
+          }
+          variant="ghost"
+          size="xs"
+          onClick={() => cancelOrderFn({ orderId: order.orderId })}
+        >
           <X className="mr-2 h-3 w-3" />
-          Cancelar
+          {isCancelOrderPending ? (
+            <Skeleton className="h-4 w-12 bg-muted-foreground" />
+          ) : (
+            'Cancelar'
+          )}
         </Button>
       </TableCell>
     </TableRow>
