@@ -5,12 +5,14 @@ import { ArrowRight, Search, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { approveOrder } from '@/api/approve-order'
 import { cancelOrder } from '@/api/cancel-order'
+import { deliverOrder } from '@/api/deliver-order'
+import { dispatchOrder } from '@/api/dispatch-order'
 import { ListOrdersResponse, Order, OrderStatusEnum } from '@/api/list-orders'
 import { OrderStatus } from '@/components/order-status'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
-import { Skeleton } from '@/components/ui/skeleton'
 import { TableCell, TableRow } from '@/components/ui/table'
 
 import { OrderDetails } from './order-details'
@@ -19,36 +21,87 @@ interface OrderTableRowProps {
   order: Order
 }
 
+interface StatusInfo {
+  text: string
+  disabled: boolean
+  function: (args: { orderId: string }) => void
+}
+
 export function OrderTableRow({ order }: OrderTableRowProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const queryClient = useQueryClient()
 
-  const { mutateAsync: cancelOrderFn, isPending: isCancelOrderPending } =
+  function updateOrderStatusOnCache(orderId: string, status: OrderStatusEnum) {
+    const ordersListCache = queryClient.getQueriesData<ListOrdersResponse>({
+      queryKey: ['orders'],
+    })
+
+    ordersListCache.forEach(([cacheKey, cacheData]) => {
+      if (!cacheData) {
+        return
+      }
+
+      // altera todo o status para cancelado em todos os caches salvos no react query
+      queryClient.setQueryData<ListOrdersResponse>(cacheKey, {
+        ...cacheData,
+        orders: cacheData.orders.map((order) => {
+          if (order.orderId === orderId) {
+            return { ...order, status }
+          }
+
+          return order
+        }),
+      })
+    })
+  }
+
+  const { mutateAsync: approveOrderFn, isPending: isApprovingOrderPending } =
+    useMutation({
+      mutationFn: approveOrder,
+      async onSuccess(_, { orderId }) {
+        updateOrderStatusOnCache(orderId, OrderStatusEnum.Processing)
+        toast.success('Pedido Aprovado com sucesso!')
+      },
+      onError(error) {
+        toast.error('Erro ao aprovar o pedido.', {
+          description: `${error.message}`,
+        })
+      },
+    })
+
+  const { mutateAsync: dispatchOrderFn, isPending: isDispatchingOrderPending } =
+    useMutation({
+      mutationFn: dispatchOrder,
+      async onSuccess(_, { orderId }) {
+        updateOrderStatusOnCache(orderId, OrderStatusEnum.Delivering)
+        toast.success('Pedido enviado com sucesso!')
+      },
+      onError(error) {
+        toast.error('Erro ao enviar o pedido.', {
+          description: `${error.message}`,
+        })
+      },
+    })
+
+  const { mutateAsync: deliverOrderFn, isPending: isDeliveringOrderPending } =
+    useMutation({
+      mutationFn: deliverOrder,
+      async onSuccess(_, { orderId }) {
+        updateOrderStatusOnCache(orderId, OrderStatusEnum.Delivered)
+        toast.success('Pedido entregue com sucesso!')
+      },
+      onError(error) {
+        toast.error('Erro ao entregar o pedido.', {
+          description: `${error.message}`,
+        })
+      },
+    })
+
+  const { mutateAsync: cancelOrderFn, isPending: isCancelingOrderPending } =
     useMutation({
       mutationFn: cancelOrder,
       async onSuccess(_, { orderId }) {
-        const ordersListCache = queryClient.getQueriesData<ListOrdersResponse>({
-          queryKey: ['orders'],
-        })
-
-        ordersListCache.forEach(([cacheKey, cacheData]) => {
-          if (!cacheData) {
-            return
-          }
-
-          // altera todo o status para cancelado em todos os caches salvos no react query
-          queryClient.setQueryData<ListOrdersResponse>(cacheKey, {
-            ...cacheData,
-            orders: cacheData.orders.map((order) => {
-              if (order.orderId === orderId) {
-                return { ...order, status: OrderStatusEnum.Canceled }
-              }
-
-              return order
-            }),
-          })
-        })
-
+        updateOrderStatusOnCache(orderId, OrderStatusEnum.Canceled)
         toast.success('Pedido cancelado com sucesso!')
       },
       onError(error) {
@@ -57,6 +110,36 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
         })
       },
     })
+
+  const statusInfoMap: Record<OrderStatusEnum, StatusInfo> = {
+    pending: {
+      text: 'Aprovar',
+      disabled: isApprovingOrderPending,
+      function: approveOrderFn,
+    },
+    processing: {
+      text: 'Em entrega',
+      disabled: isDispatchingOrderPending,
+      function: dispatchOrderFn,
+    },
+    delivering: {
+      text: 'Entregue',
+      disabled: isDeliveringOrderPending,
+      function: deliverOrderFn,
+    },
+    canceled: {
+      text: 'Aprovar',
+      disabled: true,
+      function: cancelOrderFn,
+    },
+    delivered: {
+      text: 'Aprovar',
+      disabled: true,
+      function: deliverOrderFn,
+    },
+  }
+
+  const statusInfo = statusInfoMap[order.status]
 
   return (
     <TableRow>
@@ -91,9 +174,14 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
         })}
       </TableCell>
       <TableCell>
-        <Button variant="outline" size="xs">
+        <Button
+          variant="outline"
+          size="xs"
+          disabled={statusInfo.disabled}
+          onClick={() => statusInfo.function({ orderId: order.orderId })}
+        >
           <ArrowRight className="mr-2 h-3 w-3" />
-          Aprovar
+          {statusInfo.text}
         </Button>
       </TableCell>
       <TableCell>
@@ -101,18 +189,14 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
           disabled={
             ![OrderStatusEnum.Pending, OrderStatusEnum.Processing].includes(
               order.status,
-            )
+            ) || isCancelingOrderPending
           }
           variant="ghost"
           size="xs"
           onClick={() => cancelOrderFn({ orderId: order.orderId })}
         >
           <X className="mr-2 h-3 w-3" />
-          {isCancelOrderPending ? (
-            <Skeleton className="h-4 w-12 bg-muted-foreground" />
-          ) : (
-            'Cancelar'
-          )}
+          Cancelar
         </Button>
       </TableCell>
     </TableRow>
