@@ -11,7 +11,6 @@ import {
   YAxis,
 } from 'recharts'
 import colors from 'tailwindcss/colors'
-import { date } from 'zod'
 
 import { getDailyRevenueInPeriod } from '@/api/get-daily-revenue-in-period'
 import {
@@ -63,7 +62,7 @@ export function RevenueChart() {
       <CardContent>
         {chartData && (
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={chartData} style={{ fontSize: 12 }}>
+            <LineChart data={dailyRevenueInPeriod} style={{ fontSize: 12 }}>
               <XAxis dataKey="date" tickLine={false} axisLine={false} dy={16} />
               <YAxis
                 stroke="#888"
