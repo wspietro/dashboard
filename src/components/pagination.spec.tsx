@@ -13,6 +13,10 @@ function setup(jsx: ReactElement) {
 
 const onPageChangeCallback = vi.fn()
 
+beforeEach(() => {
+  onPageChangeCallback.mockClear()
+})
+
 describe('Pagination', () => {
   it('should display the right amount of pages and results', () => {
     const { wrapper } = setup(
