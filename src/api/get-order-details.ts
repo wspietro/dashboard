@@ -15,7 +15,7 @@ type ItemsDetails = {
   product: {
     name: string
   }
-}
+}[]
 
 export interface GetOrderDetailsResponse {
   id: string
@@ -23,14 +23,14 @@ export interface GetOrderDetailsResponse {
   status: OrderStatusEnum
   totalInCents: number
   customer: CustomerDetails
-  orderItems: ItemsDetails[]
+  orderItems: ItemsDetails
 }
 
-interface getOrderDetailsParams {
+export interface GetOrderDetailsParams {
   orderId: string
 }
 
-export async function getOrderDetails({ orderId }: getOrderDetailsParams) {
+export async function getOrderDetails({ orderId }: GetOrderDetailsParams) {
   const response = await api.get<GetOrderDetailsResponse>(`/orders/${orderId}`)
 
   return response.data
