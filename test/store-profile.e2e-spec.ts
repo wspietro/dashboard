@@ -17,7 +17,7 @@ test('update profile successfully', async ({ page }) => {
 
   expect(toast).toBeVisible()
 
-  await page.waitForTimeout(250) // aguardar fechamento do modal
+  page.waitForTimeout(250) // aguardar fechamento do modal
 
   expect(page.getByRole('button', { name: 'Rocket Pizza' })).toBeVisible()
 })
