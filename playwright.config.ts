@@ -12,6 +12,7 @@ import { defineConfig } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './test',
+  testMatch: /.*\.e2e-spec\.ts$/,
   /* Roda testes em paralelo (paralelismo) */
   fullyParallel: true,
   /* Determina se os testes devem dar erro caso tenham only em ambiente de CI */
