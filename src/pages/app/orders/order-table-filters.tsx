@@ -87,7 +87,7 @@ export function OrderTableFilters() {
         })}
       />
       <Input
-        placeholder="Nome do client"
+        placeholder="Nome do cliente"
         className="h-8 w-[320px]"
         {...register('customerName', {
           onChange: (e) => {
